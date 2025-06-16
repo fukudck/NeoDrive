@@ -1,7 +1,9 @@
 const LayoutAuth = ({children}: {children: React.ReactNode}) => {
 	return (
 		<>
-			{children}
+			<div className="-mt-7">
+				{children}
+			</div>
 		</>
 	)
 }

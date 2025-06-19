@@ -20,31 +20,52 @@ enum UserRole {
   USER
 }
 
-model User{
-  id      String     @id @default(cuid())
-  email   String? @unique
-  name    String? 
+model User {
+  id            String        @id @default(uuid())
+  email         String?       @unique
+  name          String?
   emailVerified DateTime?
-  image String?
-  password String?
-  role  UserRole @default(USER)
-  accounts Account[]
+  image         String?
+  password      String?
+  role          UserRole      @default(USER)
+  files         File[]        @relation("UserFiles")
+  shareLinks    ShareLink[]   @relation("UserShareLinks")
 }
-model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
- 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
-  @@unique([provider, providerAccountId])
+
+
+
+model File {
+  id           String     @id @default(uuid())
+  ownerId      String
+  owner        User       @relation("UserFiles", fields: [ownerId], references: [id])
+  shareLinkId  String     // Foreign key đến ShareLink
+  shareLink    ShareLink  @relation(fields: [shareLinkId], references: [id])
+  filename     String
+  size         Int
+  mime         String
+  url          String
+  createdAt    DateTime   @default(now())
+  emailShares  EmailShare[]
+}
+
+model ShareLink {
+  id              String    @id @default(uuid())
+  token           String    @unique
+  passwordHash    String?
+  expiredAt       DateTime
+  maxDownloads    Int?
+  downloadsCount  Int       @default(0)
+  createdAt       DateTime  @default(now())
+  creatorId       String
+  creator         User      @relation("UserShareLinks", fields: [creatorId], references: [id])
+  files           File[]    // 1-n: một link nhiều file
+}
+
+model EmailShare {
+  id              String    @id @default(uuid())
+  fileId          String
+  file            File      @relation(fields: [fileId], references: [id])
+  recipientEmail  String
+  sentAt          DateTime  @default(now())
+  token           String    @unique
 }

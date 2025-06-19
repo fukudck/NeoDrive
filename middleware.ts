@@ -7,7 +7,7 @@ const { auth } = NextAuth(authConfig)
 export default auth((req: NextRequest & { auth: Session | null }): Response | void => {
 	const {nextUrl} = req
 	const isLogin = !!req.auth
-	console.log(req);
+	// console.log(req);
 	
 	const isAPIAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix); 
 	const isPublicRoute = publicRoutes.includes(nextUrl.pathname);

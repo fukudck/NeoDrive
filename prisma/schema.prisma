@@ -52,13 +52,15 @@ model ShareLink {
   id              String    @id @default(uuid())
   token           String    @unique
   passwordHash    String?
-  expiredAt       DateTime
+  expiredAt       DateTime?
   maxDownloads    Int?
   downloadsCount  Int       @default(0)
   createdAt       DateTime  @default(now())
   creatorId       String
   creator         User      @relation("UserShareLinks", fields: [creatorId], references: [id])
   files           File[]    // 1-n: một link nhiều file
+  title           String  
+  message         String?    // tùy chọn
 }
 
 model EmailShare {

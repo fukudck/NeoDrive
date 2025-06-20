@@ -53,7 +53,20 @@ export async function POST(req: NextRequest) {
 
     const message = data.get('message')?.toString()?.trim() || null;
 
-    
+    const maxDownloadsRaw = data.get('maxDownloads')?.toString();
+    let maxDownloads: number | null = null;
+
+    if (maxDownloadsRaw) {
+      const parsed = parseInt(maxDownloadsRaw);
+      if (!isNaN(parsed) && parsed > 0) {
+        maxDownloads = parsed;
+      } else {
+        return NextResponse.json({ error: 'Invalid maxDownloads' }, { status: 400 });
+      }
+    } else {
+      maxDownloads = null; // 👈 Không gửi field → không giới hạn
+    }
+
 
     // Create dir
     const folderUUID = uuidv4();
@@ -63,8 +76,9 @@ export async function POST(req: NextRequest) {
         expiredAt: expiredAt ?? undefined,
         passwordHash,
         creator: { connect: { id: session.user!.id } },
-        title: title,        // luôn có (nếu thiếu thì là 'Unnamed')
-        message : message       // optional
+        title,
+        message,
+        maxDownloads // 👈 có thể là số hoặc null
       }
     });
     const uploadDir = path.join(process.cwd(), 'uploads', folderUUID);

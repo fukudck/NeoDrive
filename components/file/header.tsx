@@ -1,10 +1,15 @@
+"use client"
 import Link from "next/link"
 import { Button } from "../ui/button"
 import Nav from "./nav"
+import { useSession, signOut } from "next-auth/react";
 
 const Header = () => {
+    // const { data: session } = useSession()
+    
+    
     return (
-    <header className="px-8 xl:py-8 border ">
+    <header className="px-8 xl:py-8 ">
         <div className="container mx-auto flex justify-between items-center">
             <Link href='/'>
             <h1 className="text-3xl font-semibold">
@@ -17,10 +22,10 @@ const Header = () => {
                <Nav />
                <div className="flex items-center gap-1">
                 <Link href="/auth/login">
-                <Button>Login</Button>
+                <Button variant={'fancy'} className="bg-black text-white dark:bg-white dark:text-black">Login</Button>
                </Link>
                <Link href="/auth/register">
-                <Button>Register</Button>
+                <Button variant={'fancy'} className="bg-black text-white dark:bg-white dark:text-black">Register</Button>
                </Link>
                </div>
             </div>

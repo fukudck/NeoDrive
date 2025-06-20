@@ -12,11 +12,10 @@ const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   const session = await auth();
+  
   const data = await req.formData();
   
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const user_id = session?.user?.id ?? '0';
 
   try {
     //Get password
@@ -75,7 +74,7 @@ export async function POST(req: NextRequest) {
         token: folderUUID,
         expiredAt: expiredAt ?? undefined,
         passwordHash,
-        creator: { connect: { id: session.user!.id } },
+        creator: { connect: { id: user_id} },
         title,
         message,
         maxDownloads // 👈 có thể là số hoặc null
@@ -109,7 +108,7 @@ export async function POST(req: NextRequest) {
           size: file.size,
           mime: file.type ?? 'application/octet-stream',
           url: url,
-          ownerId: session.user!.id, 
+          ownerId: user_id, 
           shareLinkId: shareLink.id
         },
       });      
@@ -118,7 +117,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       message: 'Upload thành công',
-      uploadedBy: session.user?.id,
+      uploadedBy: user_id,
+      linkid: shareLink.id,
       downloadLink: `/download/${shareLink.token}`,
       expiredAt
     });

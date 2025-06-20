@@ -11,7 +11,8 @@ import { getUserById } from "@/data/user"
 import bcrypt from 'bcrypt'
 export const { auth, handlers, signIn, signOut } = NextAuth({
 	adapter: PrismaAdapter(db),
-	session: { strategy: "jwt" },
+	session: { strategy: "jwt",
+		maxAge: 30 * 60, },
 	...authConfig,
 	callbacks: {
 		async session({token, session}){

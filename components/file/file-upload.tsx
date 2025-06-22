@@ -2,19 +2,19 @@
 
 import type React from "react"
 
+import { cn } from "@/lib/utils"
+import { useRef, useState } from "react"
+import { motion, AnimatePresence } from "motion/react"
+import { IconUpload } from "@tabler/icons-react"
+import { X, Link, Loader2, Copy, Check } from "lucide-react"
+import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/file/select"
-import { Switch } from "@/components/file/switch"
-import { Textarea } from "@/components/file/textarea"
-import { cn } from "@/lib/utils"
-import { MdOutlineFileUpload } from "react-icons/md";
-
-import { Link, Send, X } from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
-import { useRef, useState } from "react"
-import { useDropzone } from "react-dropzone"
+import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "../ui/textarea"
+import { link } from "fs"
 
 const mainVariant = {
   initial: {
@@ -37,22 +37,18 @@ const secondaryVariant = {
   },
 }
 
-type TabType = "email" | "link"
-
 export const FileUpload = ({
   onChange,
 }: {
   onChange?: (files: File[]) => void
 }) => {
   const [files, setFiles] = useState<File[]>([])
-  const [activeTab, setActiveTab] = useState<TabType>("email")
-  const [emailFormData, setEmailFormData] = useState({
-    recipient: "",
-    subject: "",
-    message: "",
-  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [generatedLink, setGeneratedLink] = useState<string>("")
+  const [isCopied, setIsCopied] = useState(false)
   const [linkFormData, setLinkFormData] = useState({
-    linkName: "",
+    title: "",
+    message: "",
     expirationDays: "7",
     passwordProtected: false,
     password: "",
@@ -70,30 +66,77 @@ export const FileUpload = ({
     const updatedFiles = files.filter((_, index) => index !== indexToDelete)
     setFiles(updatedFiles)
     onChange && onChange(updatedFiles)
+    // Reset link state when files change
+    setGeneratedLink("")
   }
 
   const handleClick = () => {
     fileInputRef.current?.click()
   }
 
-  const handleEmailFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Sending file via email with data:", { files, emailFormData })
-    // Handle email form submission here
-  }
-
-  const handleLinkFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Creating download link with data:", { files, linkFormData })
-    // Handle link creation here
-  }
-
-  const handleEmailInputChange = (field: string, value: string) => {
-    setEmailFormData((prev) => ({ ...prev, [field]: value }))
-  }
+  const handleLinkFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+  
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append("file", file);
+      });
+  
+      formData.append("expiredOption", linkFormData.expirationDays)
+      formData.append("password", linkFormData.password)
+      formData.append("title", linkFormData.title)
+      formData.append("message", linkFormData.message)
+      formData.append("maxDownloads", linkFormData.downloadLimit)
+  
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!res.ok) throw new Error("Upload failed");
+  
+      const data = await res.json();
+  
+      setGeneratedLink(data.downloadLink);
+  
+      console.log("Creating download link with data:", data);
+    } catch (error) {
+      console.error("Error creating link:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
 
   const handleLinkInputChange = (field: string, value: string | boolean) => {
     setLinkFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const copyToClipboard = async () => {
+    if (generatedLink) {
+      try {
+        await navigator.clipboard.writeText(generatedLink)
+        setIsCopied(true)
+        setTimeout(() => setIsCopied(false), 2000)
+      } catch (error) {
+        console.error("Failed to copy link:", error)
+      }
+    }
+  }
+
+  const resetForm = () => {
+    setGeneratedLink("")
+    setLinkFormData({
+      title: "",
+      message: "",
+      expirationDays: "7",
+      passwordProtected: false,
+      password: "",
+      allowDownloadLimit: false,
+      downloadLimit: "10",
+    })
   }
 
   const { getRootProps, isDragActive } = useDropzone({
@@ -108,134 +151,151 @@ export const FileUpload = ({
   return (
     <div className="w-full">
       <div
-        className={cn(files.length > 0 ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : "flex justify-center items-center")}
+        className={cn(
+          files.length > 0 && !generatedLink
+            ? "grid grid-cols-1 lg:grid-cols-2 gap-6"
+            : "flex justify-center items-center",
+          generatedLink && "justify-center",
+        )}
       >
-        {/* Upload Area */}
-        <div className={cn("w-full", files.length === 0 && "max-w-xl mx-auto")} {...getRootProps()}>
-          <motion.div
-            onClick={handleClick}
-            whileHover="animate"
-            className="p-10 group/file block rounded-lg cursor-pointer w-full relative"
-          >
-            <input
-              ref={fileInputRef}
-              id="file-upload-handle"
-              type="file"
-              onChange={(e) => handleFileChange(Array.from(e.target.files || []))}
-              className="hidden"
-            />
-            <div className="flex flex-col items-center justify-center">
-              <p className="relative z-20 font-sans font-bold text-neutral-700 dark:text-neutral-300 text-base">
-                Upload file
-              </p>
-              <p className="relative z-20 font-sans font-normal text-neutral-400 dark:text-neutral-400 text-base mt-2">
-                Drag or drop your files here or click to upload
-              </p>
-              <div className="relative w-full mt-10 max-w-xl mx-auto">
-              <AnimatePresence mode="popLayout">
-                {files.length > 0 &&
-                  files.map((file, idx) => (
-                    <motion.div
-                      key={"file" + idx}
-                      layoutId={idx === 0 ? "file-upload" : "file-upload-" + idx}
-                      layout // chỉ dùng layout animation, không translate
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, x: -40, scale: 0.95 }} // Kéo sang trái khi xóa
-                      transition={{ duration: 0.2 }}
-                      className={cn(
-                        "relative overflow-hidden z-40 bg-white dark:bg-neutral-900 flex flex-col items-start justify-start md:h-24 p-4 mt-4 w-full mx-auto rounded-md",
-                        "shadow-sm"
+        {/* Upload Area - Hidden when link is generated */}
+        <AnimatePresence>
+          {!generatedLink && (
+            <motion.div
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className={cn("w-full", files.length === 0 && "max-w-xl mx-auto")}
+            >
+              <div {...getRootProps()}>
+                <motion.div
+                  onClick={handleClick}
+                  whileHover="animate"
+                  className="p-10 group/file block rounded-lg cursor-pointer w-full relative"
+                >
+                  <input
+                    ref={fileInputRef}
+                    id="file-upload-handle"
+                    type="file"
+                    onChange={(e) => handleFileChange(Array.from(e.target.files || []))}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col items-center justify-center">
+                    <p className="relative z-20 font-sans font-bold text-neutral-700 dark:text-neutral-300 text-base">
+                      Upload file
+                    </p>
+                    <p className="relative z-20 font-sans font-normal text-neutral-400 dark:text-neutral-400 text-base mt-2">
+                      Drag or drop your files here or click to upload
+                    </p>
+                    <div className="relative w-full mt-10 max-w-xl mx-auto">
+                      <AnimatePresence mode="popLayout">
+                        {files.length > 0 &&
+                          files.map((file, idx) => (
+                            <motion.div
+                              key={"file" + idx}
+                              layoutId={idx === 0 ? "file-upload" : "file-upload-" + idx}
+                              initial={{ opacity: 0, y: -20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                              className={cn(
+                                "relative overflow-hidden z-40 bg-white dark:bg-neutral-900 flex flex-col items-start justify-start md:h-24 p-4 mt-4 w-full mx-auto rounded-md",
+                                "shadow-sm",
+                              )}
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteFile(idx)
+                                }}
+                                className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+                              >
+                                <X className="h-4 w-4 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300" />
+                              </button>
+
+                              <div className="flex justify-between w-full items-center gap-4 pr-8">
+                                <motion.p
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  layout
+                                  className="text-base text-neutral-700 dark:text-neutral-300 truncate max-w-xs"
+                                >
+                                  {file.name}
+                                </motion.p>
+                                <motion.p
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  layout
+                                  className="rounded-lg px-2 py-1 w-fit shrink-0 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-white shadow-input"
+                                >
+                                  {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                </motion.p>
+                              </div>
+
+                              <div className="flex text-sm md:flex-row flex-col items-start md:items-center w-full mt-2 justify-between text-neutral-600 dark:text-neutral-400">
+                                <motion.p
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  layout
+                                  className="px-1 py-0.5 rounded-md bg-gray-100 dark:bg-neutral-800 "
+                                >
+                                  {file.type}
+                                </motion.p>
+
+                                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} layout>
+                                  modified {new Date(file.lastModified).toLocaleDateString()}
+                                </motion.p>
+                              </div>
+                            </motion.div>
+                          ))}
+                      </AnimatePresence>
+
+                      <AnimatePresence>
+                        {!files.length && (
+                          <motion.div
+                            layoutId="file-upload"
+                            variants={mainVariant}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 20,
+                            }}
+                            className={cn(
+                              "relative group-hover/file:shadow-2xl z-40 bg-white dark:bg-neutral-900 flex items-center justify-center h-32 mt-4 w-full max-w-[8rem] mx-auto rounded-md",
+                              "shadow-[0px_10px_50px_rgba(0,0,0,0.1)]",
+                            )}
+                          >
+                            {isDragActive ? (
+                              <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-neutral-600 flex flex-col items-center"
+                              >
+                                Drop it
+                                <IconUpload className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+                              </motion.p>
+                            ) : (
+                              <IconUpload className="h-4 w-4 text-neutral-600 dark:text-neutral-300" />
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {!files.length && (
+                        <motion.div
+                          variants={secondaryVariant}
+                          className="absolute opacity-0 border border-dashed border-sky-400 inset-0 z-30 bg-transparent flex items-center justify-center h-32 mt-4 w-full max-w-[8rem] mx-auto rounded-md"
+                        ></motion.div>
                       )}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteFile(idx);
-                        }}
-                        className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
-                      >
-                        <X className="h-4 w-4 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300" />
-                      </button>
-
-                      <div className="flex justify-between w-full items-center gap-4 pr-8">
-                        <motion.p
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          layout
-                          className="text-base text-neutral-700 dark:text-neutral-300 truncate max-w-xs"
-                        >
-                          {file.name}
-                        </motion.p>
-                        <motion.p
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          layout
-                          className="rounded-lg px-2 py-1 w-fit shrink-0 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-white shadow-input"
-                        >
-                          {(file.size / (1024 * 1024)).toFixed(2)} MB
-                        </motion.p>
-                      </div>
-
-                      <div className="flex text-sm md:flex-row flex-col items-start md:items-center w-full mt-2 justify-between text-neutral-600 dark:text-neutral-400">
-                        <motion.p
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          layout
-                          className="px-1 py-0.5 rounded-md bg-gray-100 dark:bg-neutral-800"
-                        >
-                          {file.type}
-                        </motion.p>
-
-                        
-                      </div>
-                    </motion.div>
-                  ))}
-              </AnimatePresence>
-
-                <AnimatePresence>
-                  {!files.length && (
-                    <motion.div
-                      layoutId="file-upload"
-                      variants={mainVariant}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20,
-                      }}
-                      className={cn(
-                        "relative group-hover/file:shadow-2xl z-40 bg-white dark:bg-neutral-900 flex items-center justify-center h-32 mt-4 w-full max-w-[8rem] mx-auto rounded-md",
-                        "shadow-[0px_10px_50px_rgba(0,0,0,0.1)]",
-                      )}
-                    >
-                      {isDragActive ? (
-                        <motion.p
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="text-neutral-600 flex flex-col items-center"
-                        >
-                          Drop it
-                          <MdOutlineFileUpload className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
-                        </motion.p>
-                      ) : (
-                        <MdOutlineFileUpload className="h-4 w-4 text-neutral-600 dark:text-neutral-300" />
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {!files.length && (
-                  <motion.div
-                    variants={secondaryVariant}
-                    className="absolute opacity-0 border-2 border-dashed border-sky-400 inset-0 z-30 bg-transparent flex items-center justify-center h-32 mt-4 w-full max-w-[8rem] mx-auto rounded-md"
-                  ></motion.div>
-                )}
+                    </div>
+                  </div>
+                </motion.div>
               </div>
-            </div>
-          </motion.div>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Form Area - Separate and Independent */}
+        {/* Form Area - Create Link Only */}
         <AnimatePresence>
           {files.length > 0 && (
             <motion.div
@@ -243,87 +303,38 @@ export const FileUpload = ({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               transition={{ delay: 0.2 }}
-              className="w-full"
+              className={cn("w-full max-w-xl mx-auto")}
             >
               <div
                 className="p-6 bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-800 sticky top-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Tab Navigation */}
-                <div className="flex space-x-1 mb-6 bg-gray-100 dark:bg-neutral-800 p-1 rounded-lg">
-                  <button
-                    onClick={() => setActiveTab("email")}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                      activeTab === "email"
-                        ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-sm"
-                        : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100",
-                    )}
-                  >
-                    <Send className="h-4 w-4" />
-                    Send to Email
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("link")}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                      activeTab === "link"
-                        ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-sm"
-                        : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100",
-                    )}
-                  >
-                    <Link className="h-4 w-4" />
-                    Create Link
-                  </button>
-                </div>
-
-                {/* Tab Content */}
                 <AnimatePresence mode="wait">
-                  {activeTab === "email" && (
+                  {!generatedLink ? (
                     <motion.div
-                      key="email"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
+                      key="form"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
                       <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-4">
-                        Send File via Email
+                        Create Download Link
                       </h3>
-                      <form onSubmit={handleEmailFormSubmit} className="space-y-4">
+                      <form onSubmit={handleLinkFormSubmit} className="space-y-4">
                         <div className="space-y-2">
-                          <Label
-                            htmlFor="recipient"
-                            className="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-                          >
-                            Recipient Email
+                          <Label htmlFor="title" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                            Title
                           </Label>
                           <Input
-                            id="recipient"
-                            type="email"
-                            placeholder="Enter recipient email"
-                            value={emailFormData.recipient}
-                            onChange={(e) => handleEmailInputChange("recipient", e.target.value)}
-                            className="w-full"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="subject"
-                            className="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-                          >
-                            Subject
-                          </Label>
-                          <Input
-                            id="subject"
+                            id="title"
                             type="text"
-                            placeholder="Enter subject"
-                            value={emailFormData.subject}
-                            onChange={(e) => handleEmailInputChange("subject", e.target.value)}
+                            placeholder="Enter a title for this link"
+                            value={linkFormData.title}
+                            onChange={(e) => handleLinkInputChange("title", e.target.value)}
                             className="w-full"
                             onClick={(e) => e.stopPropagation()}
+                            disabled={isLoading}
                           />
                         </div>
 
@@ -336,49 +347,12 @@ export const FileUpload = ({
                           </Label>
                           <Textarea
                             id="message"
-                            placeholder="Enter your message"
-                            value={emailFormData.message}
-                            onChange={(e) => handleEmailInputChange("message", e.target.value)}
-                            className="w-full min-h-[100px]"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-
-                        <Button type="submit" className="w-full" onClick={(e) => e.stopPropagation()}>
-                          <Send className="h-4 w-4 mr-2" />
-                          Send File
-                        </Button>
-                      </form>
-                    </motion.div>
-                  )}
-
-                  {activeTab === "link" && (
-                    <motion.div
-                      key="link"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-4">
-                        Create Download Link
-                      </h3>
-                      <form onSubmit={handleLinkFormSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="linkName"
-                            className="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-                          >
-                            Link Name (Optional)
-                          </Label>
-                          <Input
-                            id="linkName"
-                            type="text"
-                            placeholder="Enter a name for this link"
-                            value={linkFormData.linkName}
-                            onChange={(e) => handleLinkInputChange("linkName", e.target.value)}
+                            placeholder="Enter a message for this link"
+                            value={linkFormData.message}
+                            onChange={(e) => handleLinkInputChange("message", e.target.value)}
                             className="w-full"
                             onClick={(e) => e.stopPropagation()}
+                            disabled={isLoading}
                           />
                         </div>
 
@@ -392,6 +366,7 @@ export const FileUpload = ({
                           <Select
                             value={linkFormData.expirationDays}
                             onValueChange={(value) => handleLinkInputChange("expirationDays", value)}
+                            disabled={isLoading}
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select expiration time" />
@@ -420,6 +395,7 @@ export const FileUpload = ({
                             <Switch
                               checked={linkFormData.passwordProtected}
                               onCheckedChange={(checked) => handleLinkInputChange("passwordProtected", checked)}
+                              disabled={isLoading}
                             />
                           </div>
 
@@ -444,6 +420,7 @@ export const FileUpload = ({
                                 onChange={(e) => handleLinkInputChange("password", e.target.value)}
                                 className="w-full"
                                 onClick={(e) => e.stopPropagation()}
+                                disabled={isLoading}
                               />
                             </motion.div>
                           )}
@@ -462,6 +439,7 @@ export const FileUpload = ({
                             <Switch
                               checked={linkFormData.allowDownloadLimit}
                               onCheckedChange={(checked) => handleLinkInputChange("allowDownloadLimit", checked)}
+                              disabled={isLoading}
                             />
                           </div>
 
@@ -481,6 +459,7 @@ export const FileUpload = ({
                               <Select
                                 value={linkFormData.downloadLimit}
                                 onValueChange={(value) => handleLinkInputChange("downloadLimit", value)}
+                                disabled={isLoading}
                               >
                                 <SelectTrigger className="w-full">
                                   <SelectValue placeholder="Select download limit" />
@@ -498,11 +477,83 @@ export const FileUpload = ({
                           )}
                         </div>
 
-                        <Button type="submit" className="w-full" onClick={(e) => e.stopPropagation()}>
-                          <Link className="h-4 w-4 mr-2" />
-                          Create Download Link
+                        <Button
+                          type="submit"
+                          className="w-full"
+                          disabled={isLoading}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Creating Link...
+                            </>
+                          ) : (
+                            <>
+                              <Link className="h-4 w-4 mr-2" />
+                              Create Download Link
+                            </>
+                          )}
                         </Button>
                       </form>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="result"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="text-center space-y-4">
+                        <div className="flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full mx-auto">
+                          <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        </div>
+
+                        <div>
+                          <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+                            Link Created Successfully!
+                          </h3>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                            Your download link has been generated and is ready to share.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                            Your Download Link
+                          </Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={generatedLink}
+                              readOnly
+                              className="flex-1 font-mono text-sm"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <Button onClick={copyToClipboard} variant="outline" size="icon" className="shrink-0">
+                              {isCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          {isCopied && (
+                            <motion.p
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="text-xs text-green-600 dark:text-green-400"
+                            >
+                              Link copied to clipboard!
+                            </motion.p>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 pt-4">
+                          <Button onClick={resetForm} variant="outline" className="flex-1">
+                            Create Another Link
+                          </Button>
+                          <Button onClick={() => window.open(generatedLink, "_blank")} className="flex-1">
+                            Visit Link
+                          </Button>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

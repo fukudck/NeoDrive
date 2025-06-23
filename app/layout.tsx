@@ -36,7 +36,6 @@ export default function RootLayout({
         <Header />
         <PageTransition>
           <main className="mx-auto px-6 py-7 my-auto">
-            
             {children}
           </main>
           </PageTransition>

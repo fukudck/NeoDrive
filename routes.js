@@ -3,8 +3,9 @@
  * 
  */
 export const publicRoutes  = [
+	"/api/upload",
 	"/",
-	"/api/upload"
+	"/p2p"
 ]
 
 

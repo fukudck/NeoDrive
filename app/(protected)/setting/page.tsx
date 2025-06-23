@@ -2,7 +2,7 @@ import { auth, signIn, signOut } from "@/auth"
 import { Button } from "@/components/ui/button";
 export const  SettingPage = async () => {
 	const session = await auth();
-	console.log(session?.user?.role);
+	console.log(session);
 	
 	return (
 		<>

@@ -1,6 +1,6 @@
 "use client"
 import { CiEdit } from "react-icons/ci"
-import { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -11,22 +11,67 @@ import { MdDeleteOutline } from "react-icons/md"
 import { IoMdCheckmarkCircleOutline } from "react-icons/io"
 import { IoInformationCircle } from "react-icons/io5"
 import { CiCircleQuestion } from "react-icons/ci"
+import { useParams } from 'next/navigation';
+import { formatDistanceToNow } from "date-fns"
+import { vi } from "date-fns/locale"
+import {formatFileSize} from "@/helper/formatSize"
+import { formatDate } from "@/helper/formatDate"
+import Link from "next/link"
+type File = {
+  id: string,
+  ownerId: string,
+  shareLinkId: string,
+  filename: string,
+  size: number,
+  mime: string,
+  url: string,
+  createdAt: Date
 
+}
+type ShareLink = {
+  id: string
+  token: string
+  title: string
+  message?: string
+  passwordHash?: string
+  expiredAt?: string
+  maxDownloads?: number
+  downloadsCount: number
+  createdAt: string
+  files: File[]
+}
 const TransfersPage = () => {
+  const route = useParams();
+  const { id } = route
+  
+  
   const [copied, setCopied] = useState(false)
-  const handleCopy = () => {
-    setCopied(true)
-    // navigator.clipboard.writeText(inputValue);
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const [data, setData] = useState<ShareLink | null>(null)
+  const downloadLink = `/download/${data?.token}`
 
+  const handleCopy = () => {
+      navigator.clipboard.writeText(downloadLink) 
+
+  }
+  useEffect(() => {
+    fetch(`/api/transfers/${id}`)
+      .then(res => res.json())
+      .then(data => setData(data))
+  },[])
+  
+  
   return (
     <TooltipProvider>
       <div className="container mx-auto">
         
         <div className="flex flex-col justify-start items-start">
           <div className="flex justify-center items-center gap-2 pt-4 sm:pt-8 pb-2">
-            <h1 className="font-bold text-xl sm:text-2xl lg:text-[30px] break-all">Notepad.txt</h1>
+            
+                <h1 className="font-bold text-xl sm:text-2xl lg:text-[30px] break-all">
+                  {data?.title}
+              </h1>
+        
+            
             <Tooltip>
               <TooltipTrigger>
                 <CiEdit className="text-xl sm:text-2xl lg:text-[30px] flex-shrink-0" />
@@ -37,9 +82,19 @@ const TransfersPage = () => {
             </Tooltip>
           </div>
           <div className="flex flex-wrap gap-1 sm:gap-2 text-sm sm:text-base lg:text-[18px]">
-            <div className="font-light text-gray-400">1 file</div>
-            <div className="font-light text-gray-400">• 34 Byte</div>
-            <div className="font-light text-gray-400">• Sent 7 minutes ago</div>
+            <div className="font-light text-gray-400">{data?.files.length}file</div>
+            {data && data.files && (
+              <div className="font-light text-gray-400">
+                • {formatFileSize(data.files.reduce((sum, f) => sum + f.size, 0))}
+              </div>
+            )}
+
+
+            {data && data.createdAt && (
+              <div className="font-light text-gray-400">
+                • Sent {formatDistanceToNow(new Date(data.createdAt), { addSuffix: true })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -57,7 +112,9 @@ const TransfersPage = () => {
                 ) : (
                   <div className="flex items-center w-full border rounded-md border-gray-200 bg-white">
                     <Input
+                      value={`/download/${data?.token}`}
                       placeholder="https://..."
+                      disabled
                       className="dark:text-black dark:bg-black-300 flex-grow rounded-l-md h-10 sm:h-12 lg:h-[50px] border-2 focus:outline-none px-3 sm:px-4 py-2 text-sm sm:text-base"
                     />
                     <div className="flex items-center px-2 sm:px-3">
@@ -72,10 +129,10 @@ const TransfersPage = () => {
 
               
               <div className="flex items-center gap-4 sm:gap-6 lg:gap-8 w-full lg:w-auto justify-center lg:justify-end">
-                <a href="#" className="flex flex-col items-center text-center hover:opacity-70 transition-opacity">
+                <Link href={downloadLink}  className="flex flex-col items-center text-center hover:opacity-70 transition-opacity">
                   <GoDownload className="text-lg sm:text-xl font-semibold mb-1" />
                   <span className="text-xs sm:text-sm">Download</span>
-                </a>
+                </Link>
                 <a href="#" className="flex flex-col items-center text-center hover:opacity-70 transition-opacity">
                   <IoReturnDownForward className="text-lg sm:text-xl font-semibold mb-1" />
                   <span className="text-xs sm:text-sm">Forward</span>
@@ -110,7 +167,7 @@ const TransfersPage = () => {
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-red-600 mt-2 mb-2 text-base sm:text-lg lg:text-[19px]">June 21, 2025</div>
+              <div className="text-red-600 mt-2 mb-2 text-base sm:text-lg lg:text-[19px]">{formatDate(data?.expiredAt || "")}</div>
               <div className="flex gap-2 items-start">
                 <div className="text-gray-700 dark:text-white text-sm sm:text-base">Transfer is recoverable</div>
                 <Tooltip>
@@ -155,15 +212,18 @@ const TransfersPage = () => {
 
          
           <div className="py-4 sm:py-6 lg:py-10">
-            <div className="font-semibold text-gray-700 dark:text-white mb-3 text-base sm:text-lg">1 file</div>
-            <Tooltip>
+            <div className="font-semibold text-gray-700 dark:text-white mb-3 text-base sm:text-lg">{data?.files.length} file</div>
+            {data?.files.map((item) => (
+              <Tooltip key={item.id}>
               <TooltipTrigger asChild>
                 <div className="bg-gray-100 dark:bg-gray-800 cursor-pointer rounded-xl p-3 sm:p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                   <div className="flex-1 min-w-0">
                     <div className="text-gray-700 dark:text-white font-medium text-sm sm:text-base truncate">
-                      notepad.txt
+                      {item.filename}
                     </div>
-                    <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">34 Bytes • txt</div>
+                    {item.size && (
+                  <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">{formatFileSize(item.size)} • {item.mime} </div>
+                  )}
                   </div>
                   <div className="bg-blue-100 dark:bg-blue-900 text-blue-500 dark:text-blue-400 rounded-full p-2 ml-3 flex-shrink-0">
                     <GoDownload className="text-sm sm:text-base" />
@@ -171,9 +231,10 @@ const TransfersPage = () => {
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-sm">Notepad.txt</p>
+                <p className="text-sm">{item.filename}</p>
               </TooltipContent>
             </Tooltip>
+            ))}
           </div>
         </div>
       </div>

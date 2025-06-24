@@ -2,10 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme";
-
+import { Toaster } from "@/components/ui/sonner"
 import Header from "@/components/file/header";
+import { SessionProvider } from "next-auth/react";
 import PageTransition from "@/components/file/page-transition";
-
+import { auth } from "@/auth";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,22 +25,26 @@ export const viewport: Viewport = {
   themeColor: "#FFFFFF",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // const session = await auth();
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* <SessionProvider session={session}> */}
          <ThemeProvider>
         <Header />
         <PageTransition>
           <main className="mx-auto px-6 py-7 my-auto">
             {children}
+            <Toaster />
           </main>
           </PageTransition>
         </ThemeProvider>
+        {/* </SessionProvider> */}
       
       </body>
     </html>

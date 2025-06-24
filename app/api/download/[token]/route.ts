@@ -5,6 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import archiver from 'archiver';
 import { PassThrough } from 'stream';
+import { auth } from '@/auth';
+import { use } from 'react';
 
 const prisma = new PrismaClient();
 
@@ -16,6 +18,9 @@ export async function GET(
   const token = await params.token;
   const fileId = req.nextUrl.searchParams.get('fileId');
   const password = req.nextUrl.searchParams.get('password') || '';
+  const session = await auth();
+  const user_id = session?.user?.id ?? '0';
+  
 
   const shareLink = await prisma.shareLink.findUnique({
     where: { token },
@@ -35,9 +40,11 @@ export async function GET(
   if (shareLink.passwordHash) {
     const valid = await bcrypt.compare(password, shareLink.passwordHash);
     if (!valid) {
-      return NextResponse.json({ error: 'Sai mật khẩu hoặc chưa nhập' }, { status: 401 });
+      if (user_id !== shareLink.creatorId) {
+        return NextResponse.json({ error: 'Sai mật khẩu hoặc chưa nhập' }, { status: 401 });
+      }
     }
-  }
+  } 
 
   // Kiểm tra giới hạn số lượt tải
   if (

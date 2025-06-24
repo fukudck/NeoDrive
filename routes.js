@@ -8,6 +8,7 @@ export const publicRoutes  = [
 	"/p2p"
 ]
 
+export const downloadApiRoute = "/api/download"
 
 export const authRoute = [
 	"/auth/login",

@@ -16,16 +16,15 @@ const sortOptions = [
   { value: "oldest", label: "Cũ nhất" },
   { value: "name-asc", label: "Tên A-Z" },
   { value: "name-desc", label: "Tên Z-A" },
-  { value: "price-low", label: "Giá thấp đến cao" },
-  { value: "price-high", label: "Giá cao đến thấp" },
-  { value: "popular", label: "Phổ biến nhất" },
-  { value: "rating", label: "Đánh giá cao nhất" },
 ]
+type SortProps = {
+  value: string
+  onChange: (value: string) => void
+}
 
-export default function Sort() {
-  const [sortValue, setSortValue] = useState("newest")
+export default function Sort({value, onChange} : SortProps) {
   const getCurrentLabel = () => {
-    return sortOptions.find((option) => option.value === sortValue)?.label || "Sắp xếp"
+    return sortOptions.find((option) => option.value === value)?.label || "Sắp xếp"
   }
 
   return (
@@ -44,7 +43,7 @@ export default function Sort() {
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent className="min-w-[220px] p-2">
-						<DropdownMenuRadioGroup value={sortValue} onValueChange={setSortValue}>
+						<DropdownMenuRadioGroup value={value} onValueChange={onChange}>
 							{sortOptions.map((option) => (
 								<DropdownMenuRadioItem
 									key={option.value}

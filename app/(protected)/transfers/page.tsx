@@ -78,11 +78,11 @@ export default function TransfersPage() {
       <div className="min-h-screen p-6">
         <div className="max-w-6xl mx-auto">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-64 mb-4"></div>
-            <div className="h-12 bg-gray-200 rounded w-48 mb-8"></div>
+            <div className="h-8 bg-gray-200 dark:bg-neutral-800 rounded w-64 mb-4"></div>
+            <div className="h-12 bg-gray-200 dark:bg-neutral-800 rounded w-48 mb-8"></div>
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-gray-200 rounded"></div>
+                <div key={i} className="h-24 bg-gray-200 dark:bg-neutral-800 rounded"></div>
               ))}
             </div>
           </div>
@@ -96,7 +96,6 @@ export default function TransfersPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-sm mb-2">22H1120033@UT.EDU.VN</p>
           <h1 className="text-4xl font-bold">Transfers</h1>
         </div>
 

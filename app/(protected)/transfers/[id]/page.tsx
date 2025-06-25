@@ -117,16 +117,16 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
       <div className="min-h-screen p-6">
         <div className="max-w-6xl mx-auto">
           <div className="animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-32 mb-6"></div>
-            <div className="h-12 bg-gray-200 rounded w-64 mb-4"></div>
-            <div className="h-6 bg-gray-200 rounded w-48 mb-8"></div>
+            <div className="h-6 bg-gray-200 dark:bg-neutral-800 rounded w-32 mb-6"></div>
+            <div className="h-12 bg-gray-200 dark:bg-neutral-800 rounded w-64 mb-4"></div>
+            <div className="h-6 bg-gray-200 dark:bg-neutral-800 rounded w-48 mb-8"></div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                  <div key={i} className="h-32 bg-gray-200 dark:bg-neutral-800 rounded"></div>
                 ))}
               </div>
-              <div className="h-64 bg-gray-200 rounded"></div>
+              <div className="h-64 bg-gray-200 dark:bg-neutral-800 rounded"></div>
             </div>
           </div>
         </div>

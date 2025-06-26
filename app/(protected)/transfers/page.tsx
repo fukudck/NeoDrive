@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Search, ChevronDown, Download } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-
 
 interface FileTransfer {
   id: string
@@ -19,18 +18,19 @@ interface FileTransfer {
   createdAt: string
 }
 
-
-
 export default function TransfersPage() {
   const [transfers, setTransfers] = useState<FileTransfer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState("date")
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+  const hasFetchedRef = useRef(false)
 
-  // Temporary user ID - in real app, get from authentication
   const userId = "0" // Replace with actual user ID from auth
 
   useEffect(() => {
+    if (hasFetchedRef.current) return
+    hasFetchedRef.current = true
     fetchTransfers()
   }, [])
 
@@ -52,7 +52,13 @@ export default function TransfersPage() {
   }
 
   const filteredTransfers = transfers.filter((transfer) =>
-    transfer.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    transfer.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const totalPages = Math.ceil(filteredTransfers.length / itemsPerPage)
+  const paginatedTransfers = filteredTransfers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   )
 
   const getStatusIcon = (status: string) => {
@@ -114,20 +120,23 @@ export default function TransfersPage() {
             type="text"
             placeholder="Search by title, file name, or email"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              setCurrentPage(1) // reset page on new search
+            }}
             className="pl-10 py-3 text-base border-gray-300 rounded-lg"
           />
         </div>
 
         {/* File List */}
-        <div className="space-y-4">
-          {filteredTransfers.length > 0 ? (
-            filteredTransfers.map((transfer) => (
+        <div className="space-y-4 overflow-auto">
+          {paginatedTransfers.length > 0 ? (
+            paginatedTransfers.map((transfer) => (
               <div key={transfer.id} className="rounded-lg border p-6 hover:shadow-sm transition-shadow">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <Link href={`/transfers/${transfer.id}`}>
-                      <h3 className="text-lg font-medium  mb-2 hover:text-blue-500 cursor-pointer transition-colors">
+                      <h3 className="text-lg font-medium mb-2 hover:text-blue-500 cursor-pointer transition-colors">
                         {transfer.name}
                       </h3>
                     </Link>
@@ -167,6 +176,37 @@ export default function TransfersPage() {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex justify-center space-x-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1 border rounded ${
+                  currentPage === i + 1 ? "bg-blue-500 text-white" : ""
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

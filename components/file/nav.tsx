@@ -13,7 +13,7 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
-import { ThemeSwitcher } from "../theme"
+
 
 
 
@@ -32,7 +32,7 @@ export function NavigationMenuDemo() {
             <Link href="/transfers">Transfers</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
-        <ThemeSwitcher />
+        
       </NavigationMenuList>
     </NavigationMenu>
   )

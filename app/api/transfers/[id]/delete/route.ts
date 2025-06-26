@@ -4,7 +4,8 @@ import { auth } from "@/auth"
 import fs from "fs"
 import path from "path"
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, context : { params: { id: string } }) {
+  const { id } = await context.params
   try {
     const session = await auth()
 
@@ -15,7 +16,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     // Find the share link with files
     const shareLink = await prisma.shareLink.findUnique({
       where: {
-        id: params.id,
+        id: id,
       },
       include: {
         files: true,
@@ -59,7 +60,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     // Then delete the share link
     await prisma.shareLink.delete({
       where: {
-        id: params.id,
+        id: id,
       },
     })
 

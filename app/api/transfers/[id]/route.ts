@@ -2,11 +2,15 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { headers } from "next/headers";
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: Request,
+  context: { params: { id: string } }
+) {
+  const { id } = await context.params
   try {
     const shareLink = await prisma.shareLink.findUnique({
       where: {
-        id: params.id,
+        id: id,
       },
       include: {
         files: true,

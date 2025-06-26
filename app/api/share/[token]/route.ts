@@ -2,14 +2,19 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcrypt"
 
-export async function GET(request: Request, { params }: { params: { token: string } }) {
+export async function GET(
+  request: Request,
+  context: { params: { token: string } }
+) {
+  const { token } = await context.params
+
   try {
     const { searchParams } = new URL(request.url)
     const password = searchParams.get("password")
 
     const shareLink = await prisma.shareLink.findUnique({
       where: {
-        token: params.token,
+        token: token,
       },
       include: {
         files: true,

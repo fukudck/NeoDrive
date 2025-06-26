@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useParams } from "next/navigation"
 
 interface ShareData {
   id: string
@@ -42,10 +43,11 @@ export default function SharePage({ params }: { params: { token: string } }) {
   const [password, setPassword] = useState("")
   const [passwordError, setPasswordError] = useState("")
   const [downloadingFiles, setDownloadingFiles] = useState<Set<string>>(new Set())
+  const { token } = useParams() as { token: string }
 
   useEffect(() => {
     fetchShareData()
-  }, [params.token])
+  }, [token])
 
   const fetchShareData = async (passwordAttempt?: string) => {
     try {
@@ -53,7 +55,7 @@ export default function SharePage({ params }: { params: { token: string } }) {
       setError(null)
       setPasswordError("")
 
-      const url = new URL(`/api/share/${params.token}`, window.location.origin)
+      const url = new URL(`/api/share/${token}`, window.location.origin)
       if (passwordAttempt) {
         url.searchParams.set("password", passwordAttempt)
       }
@@ -97,7 +99,7 @@ export default function SharePage({ params }: { params: { token: string } }) {
       }
 
       // Build URL with query parameters for your API
-      const url = new URL(`/api/download/${params.token}`, window.location.origin)
+      const url = new URL(`/api/download/${token}`, window.location.origin)
       if (fileId) {
         url.searchParams.set("fileId", fileId)
       }

@@ -10,8 +10,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { useState, useEffect, useRef } from "react"
 import { ArrowLeft, Copy, Download, Forward, Trash2, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,15 +48,19 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null) // Declare setError variable
   const router = useRouter()
+  const hasFetchedRef = useRef(false)
+  const { id } = useParams() as { id: string }
 
   useEffect(() => {
+    if (hasFetchedRef.current) return
+    hasFetchedRef.current = true
     fetchTransferDetail()
-  }, [params.id])
+  }, [id])
 
   const fetchTransferDetail = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/transfers/${params.id}`)
+      const response = await fetch(`/api/transfers/${id}`)
       if (response.ok) {
         const data = await response.json()
         setFileDetail(data)
@@ -241,12 +245,11 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Settings */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-1">
             {/* Expiration Date */}
             <div className="rounded-lg p-6">
               <div className="flex items-center space-x-2 mb-3">
                 <h3 className="text-lg font-medium">Expiration date</h3>
-                <Info className="w-4 h-4" />
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-gray-500">{fileDetail.expirationDate}</span>
@@ -262,7 +265,6 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
             <div className="rounded-lg p-6">
               <div className="flex items-center space-x-2 mb-3">
                 <h3 className="text-lg font-medium">Password</h3>
-                <Info className="w-4 h-4" />
               </div>
               {fileDetail.hasPassword ? (
                 <span className="text-green-600">Password protected</span>

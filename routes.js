@@ -21,6 +21,6 @@ export const authRoute = [
 	"/auth/login",
 	"/auth/register"
 ]
-export const default_login_redirect = "/setting"
+export const default_login_redirect = "/"
 
 

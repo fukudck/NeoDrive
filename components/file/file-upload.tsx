@@ -53,7 +53,7 @@ export const FileUpload = ({
     passwordProtected: false,
     password: "",
     allowDownloadLimit: false,
-    downloadLimit: "10",
+    downloadLimit: "",
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
 

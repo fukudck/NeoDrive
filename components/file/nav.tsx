@@ -1,43 +1,41 @@
 "use client"
 
+import * as React from "react"
+import Link from "next/link"
+import { CircleCheckIcon, CircleHelpIcon, CircleIcon } from "lucide-react"
+
 import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
-import { ThemeSwitcher } from "../theme"
-const Nav = () => {
 
-    return (
-        <NavigationMenu viewport={false}>
-					<NavigationMenuList>
-						<NavigationMenuItem>
-							<NavigationMenuTrigger>Sendfile</NavigationMenuTrigger>
-							<NavigationMenuContent>
-								<NavigationMenuLink>Online</NavigationMenuLink>
-								<NavigationMenuLink>Local</NavigationMenuLink>
-								<NavigationMenuLink>Link</NavigationMenuLink>
-							</NavigationMenuContent>
-						</NavigationMenuItem>
-						<NavigationMenuItem>
-							<NavigationMenuTrigger>Item One</NavigationMenuTrigger>
-							<NavigationMenuContent>
-								<NavigationMenuLink>Link</NavigationMenuLink>
-							</NavigationMenuContent>
-						</NavigationMenuItem>
-						<NavigationMenuItem>
-							<NavigationMenuTrigger>About me</NavigationMenuTrigger>
-							<NavigationMenuContent>
-								<NavigationMenuLink>Link</NavigationMenuLink>
-							</NavigationMenuContent>
-						</NavigationMenuItem>
-						<ThemeSwitcher />
-					</NavigationMenuList>
-				</NavigationMenu>
-    )
+
+
+
+export function NavigationMenuDemo() {
+  return (
+    <NavigationMenu viewport={false}>
+      <NavigationMenuList>
+        
+        <NavigationMenuItem>
+          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <Link href="/p2p">P2P</Link>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+		<NavigationMenuItem>
+          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <Link href="/transfers">Transfers</Link>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+        
+      </NavigationMenuList>
+    </NavigationMenu>
+  )
 }
 
-export default Nav
+

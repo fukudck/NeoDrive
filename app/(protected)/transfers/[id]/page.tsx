@@ -1,245 +1,323 @@
 "use client"
-import { CiEdit } from "react-icons/ci"
-import React, { useEffect, useState } from "react"
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
-import { Input } from "@/components/ui/input"
+
+import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { useParams, useRouter } from "next/navigation"
+import { useState, useEffect, useRef } from "react"
+import { ArrowLeft, Copy, Download, Forward, Trash2, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { FaCopy } from "react-icons/fa6"
-import { GoDownload } from "react-icons/go"
-import { IoReturnDownForward } from "react-icons/io5"
-import { MdDeleteOutline } from "react-icons/md"
-import { IoMdCheckmarkCircleOutline } from "react-icons/io"
-import { IoInformationCircle } from "react-icons/io5"
-import { CiCircleQuestion } from "react-icons/ci"
-import { useParams } from 'next/navigation';
-import { formatDistanceToNow } from "date-fns"
-import { vi } from "date-fns/locale"
-import {formatFileSize} from "@/helper/formatSize"
-import { formatDate } from "@/helper/formatDate"
+import { Input } from "@/components/ui/input"
 import Link from "next/link"
-type File = {
-  id: string,
-  ownerId: string,
-  shareLinkId: string,
-  filename: string,
-  size: number,
-  mime: string,
-  url: string,
-  createdAt: Date
 
-}
-type ShareLink = {
+interface FileDetail {
   id: string
-  token: string
-  title: string
-  message?: string
-  passwordHash?: string
-  expiredAt?: string
-  maxDownloads?: number
-  downloadsCount: number
-  createdAt: string
-  files: File[]
+  name: string
+  size: string
+  fileCount: number
+  uploadDate: string
+  shareUrl: string
+  expirationDate: string
+  isRecoverable: boolean
+  hasPassword: boolean
+  message: string
+  totalDownloads: number
+  maxDownloads: number | null
+  isExpired: boolean
+  files: Array<{
+    id: string
+    name: string
+    size: string
+    type: string
+    url: string
+  }>
 }
-const TransfersPage = () => {
-  const route = useParams();
-  const { id } = route
-  
-  
+
+export default function TransferDetailPage({ params }: { params: { id: string } }) {
+  const [fileDetail, setFileDetail] = useState<FileDetail | null>(null)
+  const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [data, setData] = useState<ShareLink | null>(null)
-  const downloadLink = `/download/${data?.token}`
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null) // Declare setError variable
+  const router = useRouter()
+  const hasFetchedRef = useRef(false)
+  const { id } = useParams() as { id: string }
 
-  const handleCopy = () => {
-      navigator.clipboard.writeText(downloadLink) 
-
-  }
   useEffect(() => {
-    fetch(`/api/transfers/${id}`)
-      .then(res => res.json())
-      .then(data => setData(data))
-  },[])
+    if (hasFetchedRef.current) return
+    hasFetchedRef.current = true
+    fetchTransferDetail()
+  }, [id])
+
+  const fetchTransferDetail = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/transfers/${id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setFileDetail(data)
+      } else {
+        console.error("Failed to fetch transfer detail")
+      }
+    } catch (error) {
+      console.error("Error fetching transfer detail:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCopyLink = async () => {
+    if (!fileDetail) return
+
+    try {
+      await navigator.clipboard.writeText(fileDetail.shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy link")
+    }
+  }
+
+  const handleDownload = async (fileId: string, linkId: string) => {
+    const url = `/api/download/${linkId}?fileId=${fileId}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
   
-  
-  return (
-    <TooltipProvider>
-      <div className="container mx-auto">
-        
-        <div className="flex flex-col justify-start items-start">
-          <div className="flex justify-center items-center gap-2 pt-4 sm:pt-8 pb-2">
-            
-                <h1 className="font-bold text-xl sm:text-2xl lg:text-[30px] break-all">
-                  {data?.title}
-              </h1>
-        
-            
-            <Tooltip>
-              <TooltipTrigger>
-                <CiEdit className="text-xl sm:text-2xl lg:text-[30px] flex-shrink-0" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Edit title</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="flex flex-wrap gap-1 sm:gap-2 text-sm sm:text-base lg:text-[18px]">
-            <div className="font-light text-gray-400">{data?.files.length}file</div>
-            {data && data.files && (
-              <div className="font-light text-gray-400">
-                • {formatFileSize(data.files.reduce((sum, f) => sum + f.size, 0))}
+
+  const handleDelete = async () => {
+    if (!fileDetail) return
+
+    try {
+      setDeleting(true)
+      const response = await fetch(`/api/transfers/${fileDetail.id}/delete`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        // Redirect to main page after successful deletion
+        router.push("/transfers")
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || "Failed to delete transfer")
+      }
+    } catch (err) {
+      setError("Failed to delete transfer")
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 dark:bg-neutral-800 rounded w-32 mb-6"></div>
+            <div className="h-12 bg-gray-200 dark:bg-neutral-800 rounded w-64 mb-4"></div>
+            <div className="h-6 bg-gray-200 dark:bg-neutral-800 rounded w-48 mb-8"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-32 bg-gray-200 dark:bg-neutral-800 rounded"></div>
+                ))}
               </div>
-            )}
-
-
-            {data && data.createdAt && (
-              <div className="font-light text-gray-400">
-                • Sent {formatDistanceToNow(new Date(data.createdAt), { addSuffix: true })}
-              </div>
-            )}
-          </div>
-        </div>
-
-
-        <div className="flex flex-col justify-start mt-6 sm:mt-10">
-          <div className="w-full max-w-none lg:max-w-[70%] dark:bg-[#232323] dark:border-[#444343cd] border-[#f1f1f1f6] border-t-2 border-b-2 shadow-xl p-4 sm:p-6 lg:p-10">
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-0 justify-between items-start lg:items-center">
-              
-              <div className="w-full lg:flex-1 lg:max-w-[600px]">
-                {copied ? (
-                  <div className="text-sky-300 flex items-center justify-center gap-2 text-center font-semibold text-base sm:text-lg">
-                    <IoMdCheckmarkCircleOutline className="text-xl sm:text-[25px] font-bold flex-shrink-0" />
-                    Link copied!
-                  </div>
-                ) : (
-                  <div className="flex items-center w-full border rounded-md border-gray-200 bg-white">
-                    <Input
-                      value={`/download/${data?.token}`}
-                      placeholder="https://..."
-                      disabled
-                      className="dark:text-black dark:bg-black-300 flex-grow rounded-l-md h-10 sm:h-12 lg:h-[50px] border-2 focus:outline-none px-3 sm:px-4 py-2 text-sm sm:text-base"
-                    />
-                    <div className="flex items-center px-2 sm:px-3">
-                      <Button className="text-xs sm:text-sm font-medium px-2 sm:px-3 py-1" onClick={handleCopy}>
-												<FaCopy className="mr-1 sm:mr-2 text-sm sm:text-[18px]" />
-                        Copy
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              
-              <div className="flex items-center gap-4 sm:gap-6 lg:gap-8 w-full lg:w-auto justify-center lg:justify-end">
-                <Link href={downloadLink}  className="flex flex-col items-center text-center hover:opacity-70 transition-opacity">
-                  <GoDownload className="text-lg sm:text-xl font-semibold mb-1" />
-                  <span className="text-xs sm:text-sm">Download</span>
-                </Link>
-                <a href="#" className="flex flex-col items-center text-center hover:opacity-70 transition-opacity">
-                  <IoReturnDownForward className="text-lg sm:text-xl font-semibold mb-1" />
-                  <span className="text-xs sm:text-sm">Forward</span>
-                </a>
-                <a href="#" className="flex flex-col items-center text-center hover:opacity-70 transition-opacity">
-                  <MdDeleteOutline className="text-lg sm:text-xl font-semibold mb-1" />
-                  <span className="text-xs sm:text-sm">Delete</span>
-                </a>
-              </div>
+              <div className="h-64 bg-gray-200 dark:bg-neutral-800 rounded"></div>
             </div>
-          </div>
-        </div>
-
-        
-        <div className="w-full max-w-none lg:max-w-[70%] grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 mt-6">
-        
-          <div className="py-4 sm:py-6 lg:py-10">
-
-            <div className="mb-6 sm:mb-8">
-              <div className="mb-2 flex gap-2 items-center flex-wrap">
-                <span className="text-xl sm:text-2xl lg:text-[30px] text-gray-700 font-bold dark:text-white">
-                  Expiration date
-                </span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <IoInformationCircle className="dark:text-white text-gray-700 text-xl sm:text-2xl lg:text-[27px] flex-shrink-0" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-sm">
-                      When this transfer expires, the files will be deleted and the link will no longer work.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-red-600 mt-2 mb-2 text-base sm:text-lg lg:text-[19px]">{formatDate(data?.expiredAt || "")}</div>
-              <div className="flex gap-2 items-start">
-                <div className="text-gray-700 dark:text-white text-sm sm:text-base">Transfer is recoverable</div>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <CiCircleQuestion className="text-lg sm:text-xl flex-shrink-0 mt-0.5" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-sm">
-                      Ultimate or Teams or Enterprise users can access the file even after it expires. Transfers will
-                      remain available for an extended period before being permanently deleted.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-
-
-            <div className="pt-4 sm:pt-6 lg:pt-10">
-              <div className="flex gap-2 items-center flex-wrap mb-2">
-                <span className="dark:text-white text-gray-700 text-xl sm:text-2xl lg:text-[28px] font-bold">
-                  Password
-                </span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <IoInformationCircle className="text-xl sm:text-2xl lg:text-[27px] text-gray-700 dark:text-white flex-shrink-0" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-sm text-center">Set a password to control who has access to this transfer.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="pt-2">
-                <a
-                  href="#"
-                  className="dark:text-white underline text-gray-700 text-base sm:text-lg hover:opacity-70 transition-opacity"
-                >
-                  Set password
-                </a>
-              </div>
-            </div>
-          </div>
-
-         
-          <div className="py-4 sm:py-6 lg:py-10">
-            <div className="font-semibold text-gray-700 dark:text-white mb-3 text-base sm:text-lg">{data?.files.length} file</div>
-            {data?.files.map((item) => (
-              <Tooltip key={item.id}>
-              <TooltipTrigger asChild>
-                <div className="bg-gray-100 dark:bg-gray-800 cursor-pointer rounded-xl p-3 sm:p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-gray-700 dark:text-white font-medium text-sm sm:text-base truncate">
-                      {item.filename}
-                    </div>
-                    {item.size && (
-                  <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">{formatFileSize(item.size)} • {item.mime} </div>
-                  )}
-                  </div>
-                  <div className="bg-blue-100 dark:bg-blue-900 text-blue-500 dark:text-blue-400 rounded-full p-2 ml-3 flex-shrink-0">
-                    <GoDownload className="text-sm sm:text-base" />
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-sm">{item.filename}</p>
-              </TooltipContent>
-            </Tooltip>
-            ))}
           </div>
         </div>
       </div>
-    </TooltipProvider>
+    )
+  }
+
+  if (!fileDetail) {
+    return (
+      <div className="min-h-screen p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <p className="text-gray-500">Transfer not found</p>
+            <Link href="/transfers" className="text-blue-600 hover:underline mt-4 inline-block">
+              Back to Transfers
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Back Button */}
+        <Link href="/transfers" className="inline-flex items-center hover:text-blue-500 mb-6">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Transfers
+        </Link>
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <div className="flex items-center space-x-3 mb-2">
+              <h1 className="text-4xl font-bold">{fileDetail.name}</h1>
+            </div>
+            <p className="text-gray-600">
+              {fileDetail.fileCount} file{fileDetail.fileCount > 1 ? "s" : ""} • {fileDetail.size} •{" "}
+              {fileDetail.uploadDate}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center space-x-4">
+          <Button
+            asChild
+            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 text-white border-0"
+          >
+            <a
+              href={`/api/download/${fileDetail.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download</span>
+            </a>
+          </Button>
+
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center space-x-2 bg-rose-600 hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-800 text-white border-0">
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Transfer</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete "{fileDetail?.name}"? This action cannot be undone and will
+                    permanently delete all files and the share link.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={deleting}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="bg-rose-600 hover:bg-rose-700"
+                  >
+                    {deleting ? "Deleting..." : "Delete Transfer"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Share Link */}
+        <div className="rounded-lg border p-6 mb-6">
+          <div className="flex items-center space-x-3">
+            <Input value={fileDetail.shareUrl} readOnly className="flex-1" />
+            <Button
+              onClick={handleCopyLink}
+              variant="outline"
+              className={`flex items-center space-x-2 transition-colors ${
+                copied
+                  ? "bg-green-50 border-green-300 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-400"
+                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
+              }`}
+            >
+              <Copy className="w-4 h-4" />
+              <span>{copied ? "Copied!" : "Copy"}</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Settings */}
+          <div className="lg:col-span-2 space-y-1">
+            {/* Expiration Date */}
+            <div className="rounded-lg p-6">
+              <div className="flex items-center space-x-2 mb-3">
+                <h3 className="text-lg font-medium">Expiration date</h3>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-500">{fileDetail.expirationDate}</span>
+                {fileDetail.isExpired && (
+                  <Badge variant="destructive" className="ml-2">
+                    Expired
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="rounded-lg p-6">
+              <div className="flex items-center space-x-2 mb-3">
+                <h3 className="text-lg font-medium">Password</h3>
+              </div>
+              {fileDetail.hasPassword ? (
+                <span className="text-green-600">Password protected</span>
+              ) : (
+                <button className="text-red-600">No Password</button>
+              )}
+            </div>
+
+            {/* Message */}
+            <div className="rounded-lg p-6">
+              <h3 className="text-lg font-medium mb-3">Message</h3>
+              <p className="text-gray-500">{fileDetail.message || "No message"}</p>
+            </div>
+
+            {/* Total Downloads */}
+            <div className="rounded-lg p-6">
+              <h3 className="text-lg font-medium mb-3">Total downloads</h3>
+              <p className="text-2xl font-bold text-gray-500">
+                {fileDetail.totalDownloads}
+                {fileDetail.maxDownloads && (
+                  <span className="text-sm font-normal text-gray-400"> / {fileDetail.maxDownloads} max</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Right Column - Files */}
+          <div className="lg:col-span-1">
+            <div className="rounded-lg p-6">
+              <h3 className="text-lg font-medium mb-4">
+                {fileDetail.fileCount} file{fileDetail.fileCount > 1 ? "s" : ""}
+              </h3>
+              <div className="space-y-3">
+                {fileDetail.files.map((file) => (
+                  <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{file.name}</p>
+                      <p className="text-sm text-gray-600">
+                        {file.size} • {file.type}
+                      </p>
+                    </div>
+                    <Download
+                      className="w-5 h-5 cursor-pointer hover:text-blue-600"
+                      onClick={() => handleDownload(file.id, fileDetail.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        {error && <div className="text-red-500 text-center mt-4">{error}</div>}
+      </div>
+    </div>
   )
 }
-
-export default TransfersPage

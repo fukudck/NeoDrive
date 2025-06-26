@@ -23,7 +23,7 @@ export async function GET(
   
 
   const shareLink = await prisma.shareLink.findUnique({
-    where: { token },
+    where: { id: token },
     include: { files: true }
   });
 

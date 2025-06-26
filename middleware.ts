@@ -1,20 +1,21 @@
 import authConfig from "./auth.config"
 import NextAuth, {Session} from "next-auth";
-import {publicRoutes, authRoute, apiAuthPrefix, default_login_redirect, downloadApiRoute} from "@/routes"
+import {publicRoutes, authRoute, skipAuthPrefixes, default_login_redirect} from "@/routes"
 import { NextRequest } from "next/server";
 const { auth } = NextAuth(authConfig)
+
+function isRouteStartsWithPrefixes(pathname: string, prefixes: string[]) {
+	return prefixes.some((prefix) => pathname.startsWith(prefix))
+  }
 
 export default auth((req: NextRequest & { auth: Session | null }): Response | void => {
 	const {nextUrl} = req
 	const isLogin = !!req.auth	
-	const isDownloadRoute = nextUrl.pathname.startsWith(downloadApiRoute); 
-	const isAPIAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix); 
 	const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
 	const isAuthRoute = authRoute.includes(nextUrl.pathname);
-	if(isAPIAuthRoute){
-		return
-	}
-	if(isDownloadRoute){
+
+  // ✅ Nếu là route cần skip (API auth, download, ...), thì cho qua
+	if (isRouteStartsWithPrefixes(nextUrl.pathname, skipAuthPrefixes)) {
 		return
 	}
 	if(isAuthRoute){

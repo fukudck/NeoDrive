@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
     const folderUUID = uuidv4();
     const shareLink = await prisma.shareLink.create({
       data: {
+        id: folderUUID,
         token: folderUUID,
         expiredAt: expiredAt ?? undefined,
         passwordHash,
@@ -114,12 +115,12 @@ export async function POST(req: NextRequest) {
       });      
     }
 
-
+    const origin = req.headers.get("origin") || "http://localhost:3000";
     return NextResponse.json({
       message: 'Upload thành công',
       uploadedBy: user_id,
       linkid: shareLink.id,
-      downloadLink: `/download/${shareLink.token}`,
+      downloadLink : `${origin}/share/${shareLink.token}`,
       expiredAt
     });
   } catch (error) {

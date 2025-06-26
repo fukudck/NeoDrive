@@ -8,13 +8,19 @@ export const publicRoutes  = [
 	"/p2p"
 ]
 
-export const downloadApiRoute = "/api/download"
+export const skipAuthPrefixes = [
+	"/api/auth",
+	"/api/download",
+	"/share",
+	"/api/share"
+	// thêm nếu có
+  ];
+  
 
 export const authRoute = [
 	"/auth/login",
 	"/auth/register"
 ]
-export const apiAuthPrefix = "/api/auth"
-export const default_login_redirect = "/setting"
+export const default_login_redirect = "/"
 
 

@@ -4,9 +4,9 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme";
 import { Toaster } from "@/components/ui/sonner"
 import Header from "@/components/file/header";
-import { SessionProvider } from "next-auth/react";
+// import { SessionProvider } from "next-auth/react";
 import PageTransition from "@/components/file/page-transition";
-import { auth } from "@/auth";
+// import { auth } from "@/auth";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

@@ -39,7 +39,6 @@ const LoginForm = () => {
 		 	headerLabel="Welcome back!"
 			backButtonLabel="Don't have an account?"
 			backButtonHref="/auth/register"
-			showSocial
 		 >
 			<Form {...form}>
 				<form onSubmit={form.handleSubmit(onsubmit)} className="space-y-8">

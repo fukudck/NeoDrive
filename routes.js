@@ -12,7 +12,9 @@ export const skipAuthPrefixes = [
 	"/api/auth",
 	"/api/download",
 	"/share",
-	"/api/share"
+	"/api/share",
+	"/example",
+	"/api"
 	// thêm nếu có
   ];
   

@@ -176,19 +176,7 @@ export default function TransferDetailPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-4">
-          <Button
-            asChild
-            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 text-white border-0"
-          >
-            <a
-              href={`/api/download/${fileDetail.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download</span>
-            </a>
-          </Button>
+
 
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
               <DialogTrigger asChild>

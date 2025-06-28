@@ -338,15 +338,7 @@ export default function SharePage() {
           )}
         </div>
 
-        {/* Download All Button */}
-        {!isExpired && !isDownloadLimitReached && shareData.files.length > 1 && (
-          <div className="mb-6">
-            <Button onClick={handleDownloadAll} size="lg" className="w-full md:w-auto">
-              <Download className="w-4 h-4 mr-2" />
-              Download All Files ({shareData.totalSize})
-            </Button>
-          </div>
-        )}
+
 
         {/* Files List */}
         <Card>

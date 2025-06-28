@@ -81,26 +81,23 @@ export async function POST(req: NextRequest) {
         maxDownloads // 👈 có thể là số hoặc null
       }
     });
-    const uploadDir = path.join(process.cwd(), 'uploads', folderUUID);
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
 
     // Get Files
+
     const savedFiles = [];
-    const files = data.getAll('file') as File[];
+    const rawfilesData = data.get('filesJson') 
+    if (!rawfilesData || typeof rawfilesData !== "string") {
+      return NextResponse.json({ error: "Invalid file data" }, { status: 400 });
+    }
+    
+    const files = JSON.parse(rawfilesData)
+
     if (files.length === 0) {
+      console.log("No file uploaded")
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
-    for (const file of files) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-    
-  
-      const filePath = path.join(uploadDir, file.name);
-      await writeFile(filePath, buffer);
-    
-      const url = `/uploads/${folderUUID}/${file.name}`;
+    for (const file of files) {    
+      const url = file.ufsUrl;
       savedFiles.push(url);
     
       await prisma.file.create({

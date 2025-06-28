@@ -14,7 +14,14 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "../ui/textarea"
-import { link } from "fs"
+
+import { genUploader } from "uploadthing/client";
+
+import type { ourFileRouter } from "@/app/api/uploadthing/core"
+
+export const { uploadFiles } = genUploader<typeof ourFileRouter>();
+
+
 
 const mainVariant = {
   initial: {
@@ -79,11 +86,24 @@ export const FileUpload = ({
     setIsLoading(true);
   
     try {
+
+      const uploaded = await uploadFiles("imageUploader", {
+        files,
+      });
+      
+      if (!uploaded || uploaded.length === 0) {
+        throw new Error("Upload failed");
+      }
+
+      const fileJson =  JSON.stringify(uploaded); 
+
+      
       const formData = new FormData();
       files.forEach((file) => {
         formData.append("file", file);
       });
-  
+
+      formData.append("filesJson", fileJson)
       formData.append("expiredOption", linkFormData.expirationDays)
       formData.append("password", linkFormData.password)
       formData.append("title", linkFormData.title)

@@ -4,7 +4,7 @@ import { auth } from "@/auth"
 import fs from "fs"
 import path from "path"
 
-export async function DELETE(request: Request, context : { params: { id: string } }) {
+export async function DELETE(request: Request, context : { params: Promise<{ id: string }> }) {
   const { id } = await context.params
   try {
     const session = await auth()

@@ -40,7 +40,7 @@ interface FileDetail {
   }>
 }
 
-export default function TransferDetailPage({ params }: { params: { id: string } }) {
+export default function TransferDetailPage() {
   const [fileDetail, setFileDetail] = useState<FileDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)

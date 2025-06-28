@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   req: NextRequest,
-  context: { params: { token: string } }
+  context: { params: Promise<{ token: string }> }
 ) {
   const params = await context.params;
   const token = await params.token;

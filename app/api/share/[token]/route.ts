@@ -1,14 +1,17 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcrypt"
 
+type Params = Promise<{ token: string }>
 export async function GET(
-  request: Request,
-  context: { params: { token: string } }
+  request: NextRequest,
+  segmentData: { params: Params }
 ) {
-  const { token } = await context.params
+  const params = await segmentData.params
+  const token = params.token
 
   try {
+
     const { searchParams } = new URL(request.url)
     const password = searchParams.get("password")
 

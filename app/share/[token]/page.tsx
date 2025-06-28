@@ -35,7 +35,7 @@ interface ShareData {
   }>
 }
 
-export default function SharePage({ params }: { params: { token: string } }) {
+export default function SharePage() {
   const [shareData, setShareData] = useState<ShareData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

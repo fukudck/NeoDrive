@@ -4,7 +4,6 @@ import { registerSchemas } from "@/schemas"
 import { db } from "@/lib/db"
 import bcrypt from "bcrypt"
 export const register = async (values: z.infer<typeof registerSchemas>) => {
-	console.log(values);
 	const validated = registerSchemas.safeParse(values);
 	if(!validated.success){
 		return { error: "Invalid field! "}

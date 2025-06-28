@@ -45,7 +45,6 @@ model File {
   mime         String
   url          String
   createdAt    DateTime   @default(now())
-  emailShares  EmailShare[]
 }
 
 model ShareLink {
@@ -63,11 +62,4 @@ model ShareLink {
   message         String?    // tùy chọn
 }
 
-model EmailShare {
-  id              String    @id @default(uuid())
-  fileId          String
-  file            File      @relation(fields: [fileId], references: [id])
-  recipientEmail  String
-  sentAt          DateTime  @default(now())
-  token           String    @unique
-}
+
